@@ -1,1 +1,16 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Ngugi Family Portal</title>
+<script>
+  // GitHub Pages SPA redirect trick — redirect 404 back to index
+  const path = window.location.pathname + window.location.search;
+  const repo = ''; // set to '/your-repo-name' if hosted at github.com/user/repo
+  sessionStorage.setItem('redirect', path);
+  window.location.replace(repo + '/index.html');
+</script>
+</head>
+<body>Redirecting…</body>
+</html>
