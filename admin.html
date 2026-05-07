@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="theme-color" content="#7a5200"/>
+<title>Ngugi Family — Admin Portal</title>
+<link rel="stylesheet" href="css/style.css"/>
+<link rel="icon" href="assets/favicon.png" type="image/png"/>
+<style>
+  .admin-topbar { background: var(--green-900); }
+  .admin-topbar .topbar-title { color: var(--gold-400); font-family: 'Lora',serif; }
+  .admin-topbar .topbar-badge { background: rgba(212,160,23,.15); color: var(--gold-400); border-color: rgba(212,160,23,.3); }
+  .admin-topbar .hamburger { color: #fff; }
+  .sidebar { background: var(--green-900); border-right: 1px solid rgba(212,160,23,.15); }
+  .admin-hint { font-size: 11px; color: var(--gold-800); background: var(--gold-50); border: 1px solid var(--gold-100); border-radius: var(--radius-sm); padding: 6px 10px; margin-bottom: 14px; }
+</style>
+</head>
+<body>
+
+<!-- Login screen -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">NF</div>
+    <h2 class="login-title">Admin Portal</h2>
+    <p class="login-sub">Enter the admin PIN to continue</p>
+    <div class="form-group">
+      <input type="password" class="form-input" id="pinInput" placeholder="Enter PIN" maxlength="10"
+        onkeydown="if(event.key==='Enter')doLogin()" style="text-align:center;letter-spacing:.3em;font-size:18px"/>
+    </div>
+    <button class="btn btn-primary w-full" onclick="doLogin()">Login →</button>
+    <p class="login-error" id="loginError">Incorrect PIN. Please try again.</p>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:18px">
+      <a href="index.html">← Back to member portal</a>
+    </p>
+    <p style="font-size:11px;color:var(--text-muted);margin-top:6px">Default PIN: 1234 (change in Settings)</p>
+  </div>
+</div>
+
+<!-- Sidebar overlay (mobile) -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- Main app (hidden until login) -->
+<div class="layout" id="adminApp" style="display:none">
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon">NF</div>
+    <div class="sidebar-logo-name">Admin Portal</div>
+    <div class="sidebar-logo-slogan">Ngugi Family Management</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="nav-icon">📊</span> Dashboard</div>
+    <div class="nav-item" onclick="showPage('members',this)"><span class="nav-icon">👥</span> Members</div>
+    <div class="nav-item" onclick="showPage('kitty',this)"><span class="nav-icon">💰</span> Kitty</div>
+    <div class="nav-item" onclick="showPage('leadership',this)"><span class="nav-icon">🏅</span> Leadership</div>
+    <div class="nav-item" onclick="showPage('meetings',this)"><span class="nav-icon">📋</span> Meetings</div>
+    <div class="nav-item" onclick="showPage('events',this)"><span class="nav-icon">📅</span> Events</div>
+    <div class="nav-item" onclick="showPage('announcements',this)"><span class="nav-icon">📢</span> Announcements</div>
+    <div class="nav-item" onclick="showPage('gallery',this)"><span class="nav-icon">🖼️</span> Gallery</div>
+    <div class="nav-item" onclick="showPage('import',this)"><span class="nav-icon">📥</span> Import / Export</div>
+    <div class="nav-item" onclick="showPage('settings',this)"><span class="nav-icon">⚙️</span> Settings</div>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="index.html" style="color:rgba(255,255,255,.5);font-size:12px">← Member portal</a> &nbsp;
+    <span style="cursor:pointer;color:rgba(255,255,255,.5);font-size:12px" onclick="doLogout()">Log out</span>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar admin-topbar">
+    <div class="flex gap-8" style="align-items:center">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="topbar-title" id="topbarTitle">Dashboard</span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-badge">Admin</span>
+      <button class="btn btn-outline btn-sm" onclick="doLogout()">Log out</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+  <!-- ════ DASHBOARD ═══════════════════════════════════════ -->
+  <div class="page active" id="page-dashboard">
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-sub">Overview of family data</p>
+    <div class="stats-grid" id="dashStats"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <div class="section-label">Recent payments</div>
+        <div class="card" id="dashRecentPay"></div>
+      </div>
+      <div>
+        <div class="section-label">Unpaid members</div>
+        <div class="card" id="dashUnpaid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ MEMBERS ═════════════════════════════════════════ -->
+  <div class="page" id="page-members">
+    <h1 class="page-title">Members</h1>
+    <p class="page-sub">Add, edit and manage family members</p>
+
+    <div class="admin-hint">💡 Members are organised by parent. Always set the correct parent when adding a new member to keep the family tree accurate.</div>
+
+    <div class="flex-between mb-16">
+      <div class="search-bar" style="flex:1;margin-right:12px;margin-bottom:0">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Search members…" oninput="adminFilterMembers(this.value)"/>
+      </div>
+      <button class="btn btn-primary" onclick="openAddMember()">+ Add member</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Gen</th><th>Parent</th><th>Tier</th><th>Location</th><th>Kitty</th><th>Actions</th></tr></thead>
+        <tbody id="adminMembersTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ════ KITTY ═══════════════════════════════════════════ -->
+  <div class="page" id="page-kitty">
+    <h1 class="page-title">Family Kitty</h1>
+    <p class="page-sub">Record payments and manage contributions</p>
+
+    <div class="stats-grid" id="adminKittyStats"></div>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('akitty','record',this)">Record payment</button>
+      <button class="tab-btn" onclick="switchTab('akitty','status',this)">Payment status</button>
+      <button class="tab-btn" onclick="switchTab('akitty','history',this)">Transaction history</button>
+      <button class="tab-btn" onclick="switchTab('akitty','balance',this)">Adjust balance</button>
+    </div>
+
+    <div class="tab-panel active" id="akitty-tab-record">
+      <div class="card">
+        <div class="card-title">Record a payment</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Member</label>
+            <select class="form-select" id="kMember"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Amount (Ksh)</label>
+            <input class="form-input" type="number" id="kAmount" placeholder="Auto-filled from tier"/>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input class="form-input" type="date" id="kDate"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Quarter</label>
+            <input class="form-input" id="kQuarter" placeholder="e.g. Q2 2025"/>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Payment method</label>
+            <select class="form-select" id="kMethod">
+              <option>M-Pesa</option><option>Cash</option><option>Bank transfer</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Reference / code</label>
+            <input class="form-input" id="kRef" placeholder="M-Pesa code etc."/>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="recordPayment()">Record payment</button>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="akitty-tab-status">
+      <div class="card">
+        <div class="card-title">Member payment status — <span id="statusQuarter"></span></div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead><tr><th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);background:var(--cream)">Member</th><th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);background:var(--cream)">Tier</th><th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);background:var(--cream)">Amount due</th><th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);background:var(--cream)">Status</th><th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);background:var(--cream)">Action</th></tr></thead>
+          <tbody id="kittyStatusTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="akitty-tab-history">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Member</th><th>Amount</th><th>Date</th><th>Quarter</th><th>Method</th><th>Ref</th><th>Del</th></tr></thead>
+          <tbody id="adminTxTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="akitty-tab-balance">
+      <div class="card">
+        <div class="card-title">Manual balance adjustment</div>
+        <div class="admin-hint">Use this to record expenses, corrections or opening balance.</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Type</label>
+            <select class="form-select" id="adjType"><option>Credit (income)</option><option>Debit (expense)</option></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Amount (Ksh)</label>
+            <input class="form-input" type="number" id="adjAmount" placeholder="0"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Note / reason</label>
+          <input class="form-input" id="adjNote" placeholder="e.g. Venue booking — August meeting"/>
+        </div>
+        <button class="btn btn-primary" onclick="adjustBalance()">Apply adjustment</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ LEADERSHIP ══════════════════════════════════════ -->
+  <div class="page" id="page-leadership">
+    <h1 class="page-title">Leadership</h1>
+    <p class="page-sub">Manage committee and office bearers</p>
+    <div class="card" id="leadershipAdmin"></div>
+    <div style="margin-top:12px">
+      <button class="btn btn-primary" onclick="addLeaderRole()">+ Add role</button>
+    </div>
+  </div>
+
+  <!-- ════ MEETINGS ════════════════════════════════════════ -->
+  <div class="page" id="page-meetings">
+    <h1 class="page-title">Meetings & Minutes</h1>
+    <p class="page-sub">Record meetings and upload minutes</p>
+    <button class="btn btn-primary mb-16" onclick="openAddMeeting()">+ Add meeting</button>
+    <div class="card" id="adminMeetingsList"></div>
+  </div>
+
+  <!-- ════ EVENTS ══════════════════════════════════════════ -->
+  <div class="page" id="page-events">
+    <h1 class="page-title">Events</h1>
+    <p class="page-sub">Plan and manage family events</p>
+    <button class="btn btn-primary mb-16" onclick="openAddEvent()">+ Add event</button>
+    <div class="card" id="adminEventsList"></div>
+  </div>
+
+  <!-- ════ ANNOUNCEMENTS ═══════════════════════════════════ -->
+  <div class="page" id="page-announcements">
+    <h1 class="page-title">Announcements</h1>
+    <p class="page-sub">Post and manage announcements visible to all members</p>
+    <button class="btn btn-primary mb-16" onclick="openAddAnnounce()">+ New announcement</button>
+    <div id="adminAnnounceList"></div>
+  </div>
+
+  <!-- ════ GALLERY ═════════════════════════════════════════ -->
+  <div class="page" id="page-gallery">
+    <h1 class="page-title">Gallery</h1>
+    <p class="page-sub">Upload and manage family photos</p>
+
+    <div class="upload-zone" id="galleryDrop" onclick="document.getElementById('galleryFileInput').click()"
+      ondragover="event.preventDefault();this.classList.add('drag-over')"
+      ondragleave="this.classList.remove('drag-over')"
+      ondrop="handleGalleryDrop(event)">
+      <div class="upload-icon">📸</div>
+      <div class="upload-text">Click or drag photos here</div>
+      <div class="upload-sub">JPG, PNG, WEBP — multiple files supported</div>
+    </div>
+    <input type="file" id="galleryFileInput" accept="image/*" multiple style="display:none" onchange="handleGalleryFiles(this.files)"/>
+
+    <div class="gallery-grid mt-16" id="adminGalleryGrid"></div>
+    <div class="empty-state" id="adminGalleryEmpty" style="display:none">
+      <div class="empty-state-icon">🖼️</div>
+      <div class="empty-state-text">No photos uploaded yet</div>
+    </div>
+  </div>
+
+  <!-- ════ IMPORT / EXPORT ════════════════════════════════ -->
+  <div class="page" id="page-import">
+    <h1 class="page-title">Import / Export</h1>
+    <p class="page-sub">Bulk import members or export family data</p>
+
+    <div class="section-label">Import members from CSV</div>
+    <div class="card">
+      <p class="text-sm text-muted mb-16">CSV columns: <code>name, parentName, generation, gender, dob, location, phone, tier, status</code></p>
+      <p class="admin-hint">Tier values: <b>founder</b>, <b>g2</b>, <b>g3</b>, <b>g4</b>, <b>junior</b> (under 18)</p>
+      <div class="upload-zone" onclick="document.getElementById('csvInput').click()"
+        ondragover="event.preventDefault();this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')"
+        ondrop="handleCsvDrop(event)">
+        <div class="upload-icon">📄</div>
+        <div class="upload-text">Click or drag CSV file here</div>
+        <div class="upload-sub">Comma-separated values (.csv)</div>
+      </div>
+      <input type="file" id="csvInput" accept=".csv,text/csv" style="display:none" onchange="importCsv(this.files[0])"/>
+      <div id="csvPreview" style="margin-top:16px"></div>
+    </div>
+
+    <div class="section-label" style="margin-top:20px">Import members from text / paste</div>
+    <div class="card">
+      <p class="text-sm text-muted mb-16">Paste one member per line: <code>Name, ParentName, Generation, Location</code></p>
+      <textarea class="form-textarea" id="pasteInput" style="height:120px;font-family:monospace;font-size:12px" placeholder="Kamau, Watiri, 3, Nakuru&#10;Paul, Watiri, 3, Nairobi&#10;Nduta, Watiri, 3, Thika"></textarea>
+      <button class="btn btn-primary mt-8" onclick="importPaste()">Import from text</button>
+      <div id="pastePreview" style="margin-top:12px"></div>
+    </div>
+
+    <div class="section-label" style="margin-top:20px">Export</div>
+    <div class="card">
+      <div class="flex gap-8">
+        <button class="btn btn-outline" onclick="exportCsv()">📥 Export members CSV</button>
+        <button class="btn btn-outline" onclick="exportJson()">📥 Export full data JSON</button>
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-top:20px">Danger zone</div>
+    <div class="card">
+      <p class="text-sm text-muted mb-16">This will wipe all data and restore the original seed data. This cannot be undone.</p>
+      <button class="btn btn-danger" onclick="confirmReset()">⚠ Reset all data</button>
+    </div>
+  </div>
+
+  <!-- ════ SETTINGS ════════════════════════════════════════ -->
+  <div class="page" id="page-settings">
+    <h1 class="page-title">Settings</h1>
+    <p class="page-sub">Configure portal settings</p>
+    <div class="card">
+      <div class="card-title">General</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Family name</label><input class="form-input" id="setFamilyName"/></div>
+        <div class="form-group"><label class="form-label">Slogan</label><input class="form-input" id="setSlogan"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Founding year</label><input class="form-input" type="number" id="setYear"/></div>
+        <div class="form-group"><label class="form-label">Currency</label><input class="form-input" id="setCurrency"/></div>
+      </div>
+      <div class="form-group"><label class="form-label">M-Pesa till / paybill</label><input class="form-input" id="setMpesa" placeholder="e.g. 247247"/></div>
+      <button class="btn btn-primary" onclick="saveSettings()">Save settings</button>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">Change admin PIN</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">New PIN</label><input class="form-input" type="password" id="newPin"/></div>
+        <div class="form-group"><label class="form-label">Confirm PIN</label><input class="form-input" type="password" id="confirmPin"/></div>
+      </div>
+      <button class="btn btn-primary" onclick="changePin()">Change PIN</button>
+    </div>
+  </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- ── Add/Edit Member Modal ─────────────────────────────── -->
+<div class="modal-overlay" id="memberModal" style="display:none" onclick="if(event.target===this)closeMemberModal()">
+  <div class="modal" style="position:relative">
+    <button class="modal-close" onclick="closeMemberModal()">✕</button>
+    <h2 class="modal-title" id="memberModalTitle">Add member</h2>
+    <input type="hidden" id="editMemberId"/>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Full name *</label><input class="form-input" id="mName"/></div>
+      <div class="form-group"><label class="form-label">Gender</label>
+        <select class="form-select" id="mGender"><option value="M">Male</option><option value="F">Female</option></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Parent *</label>
+        <select class="form-select" id="mParent"><option value="">-- None (Founder) --</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Generation</label>
+        <select class="form-select" id="mGen">
+          <option value="1">1 — Founders</option>
+          <option value="2">2 — Ngugi's children</option>
+          <option value="3" selected>3 — Grandchildren</option>
+          <option value="4">4 — Great-grandchildren</option>
+          <option value="5">5+</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Tier / contribution</label>
+        <select class="form-select" id="mTier">
+          <option value="founder">Founder (no contribution)</option>
+          <option value="g2">Ngugi's child (Ksh 200)</option>
+          <option value="g3" selected>Grandchild/Other 18+ (Ksh 300)</option>
+          <option value="junior">Under 18 (Ksh 50)</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Status</label>
+        <select class="form-select" id="mStatus"><option value="active">Active</option><option value="deceased">Deceased</option></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Location</label><input class="form-input" id="mLocation" placeholder="e.g. Nakuru"/></div>
+      <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="mPhone" placeholder="07xx xxxxxx"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Date of birth</label><input class="form-input" type="date" id="mDob"/></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeMemberModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMember()">Save member</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Add Meeting Modal ─────────────────────────────────── -->
+<div class="modal-overlay" id="meetingModal" style="display:none" onclick="if(event.target===this)closeMeetingModal()">
+  <div class="modal" style="position:relative">
+    <button class="modal-close" onclick="closeMeetingModal()">✕</button>
+    <h2 class="modal-title">Add / edit meeting</h2>
+    <input type="hidden" id="editMeetingId"/>
+    <div class="form-group"><label class="form-label">Meeting title *</label><input class="form-input" id="mtTitle" placeholder="e.g. Annual Family Meeting 2025"/></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="mtDate"/></div>
+      <div class="form-group"><label class="form-label">Location</label><input class="form-input" id="mtLocation"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Attendance count</label><input class="form-input" type="number" id="mtAttendance" value="0"/></div>
+      <div class="form-group"><label class="form-label">Status</label>
+        <select class="form-select" id="mtStatus"><option value="upcoming">Upcoming</option><option value="past">Past</option></select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Agenda / Minutes</label>
+      <textarea class="form-textarea" id="mtAgenda" style="height:120px" placeholder="1. Opening&#10;2. Roll call&#10;3. Treasurer report&#10;…"></textarea>
+    </div>
+    <div class="form-group"><label class="form-label">Additional notes</label><textarea class="form-textarea" id="mtNotes" placeholder="Any other notes…"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeMeetingModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMeeting()">Save meeting</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Add Event Modal ───────────────────────────────────── -->
+<div class="modal-overlay" id="eventModal" style="display:none" onclick="if(event.target===this)closeEventModal()">
+  <div class="modal" style="position:relative">
+    <button class="modal-close" onclick="closeEventModal()">✕</button>
+    <h2 class="modal-title">Add / edit event</h2>
+    <input type="hidden" id="editEventId"/>
+    <div class="form-group"><label class="form-label">Event title *</label><input class="form-input" id="evTitle"/></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="evDate"/></div>
+      <div class="form-group"><label class="form-label">Status</label>
+        <select class="form-select" id="evStatus"><option value="upcoming">Upcoming</option><option value="planning">Planning</option><option value="past">Past</option></select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Location</label><input class="form-input" id="evLocation"/></div>
+    <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="evNotes"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeEventModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEvent()">Save event</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Add Announcement Modal ────────────────────────────── -->
+<div class="modal-overlay" id="announceModal" style="display:none" onclick="if(event.target===this)closeAnnounceModal()">
+  <div class="modal" style="position:relative">
+    <button class="modal-close" onclick="closeAnnounceModal()">✕</button>
+    <h2 class="modal-title">New announcement</h2>
+    <div class="form-group"><label class="form-label">Title *</label><input class="form-input" id="anTitle"/></div>
+    <div class="form-group"><label class="form-label">Body</label><textarea class="form-textarea" id="anBody" style="height:100px"></textarea></div>
+    <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="anDate"/></div>
+    <div class="form-group" style="display:flex;align-items:center;gap:10px">
+      <input type="checkbox" id="anPinned" style="width:auto"/>
+      <label class="form-label" style="margin:0">Pin this announcement (shows at top)</label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeAnnounceModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAnnounce()">Post announcement</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Photo caption modal ───────────────────────────────── -->
+<div class="modal-overlay" id="captionModal" style="display:none">
+  <div class="modal" style="max-width:380px;text-align:center;position:relative">
+    <button class="modal-close" onclick="skipCaption()">✕</button>
+    <h3 class="modal-title">Add a caption</h3>
+    <img id="captionPreview" style="max-height:160px;border-radius:8px;margin:10px auto"/>
+    <div class="form-group" style="margin-top:12px">
+      <input class="form-input" id="captionInput" placeholder="Caption (optional)"/>
+    </div>
+    <div class="modal-footer" style="justify-content:center">
+      <button class="btn btn-outline btn-sm" onclick="skipCaption()">Skip</button>
+      <button class="btn btn-primary btn-sm" onclick="confirmCaption()">Save photo</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/tree.js"></script>
+<script src="js/sync.js"></script>
+<script>
+/* ── Auth ────────────────────────────────────────────────────── */
+function doLogin() {
+  const pin = document.getElementById('pinInput').value;
+  if (Auth.login(pin)) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminApp').style.display = 'flex';
+    renderPage('dashboard');
+    loadSettings();
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+  }
+}
+function doLogout() { Auth.logout(); location.reload(); }
+
+window.addEventListener('DOMContentLoaded', () => {
+  if (Auth.isAdmin()) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminApp').style.display = 'flex';
+    renderPage('dashboard');
+    loadSettings();
+  }
+  document.getElementById('pinInput').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+});
+
+/* ── Navigation ──────────────────────────────────────────────── */
+let currentPage = 'dashboard';
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (el) el.classList.add('active');
+  document.getElementById('topbarTitle').textContent = el ? el.textContent.trim() : id;
+  currentPage = id;
+  closeSidebar();
+  renderPage(id);
+}
+
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebarOverlay').classList.toggle('visible'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('visible'); }
+function switchTab(group, id, btn) {
+  document.querySelectorAll(`#page-${group} .tab-panel`).forEach(p => p.classList.remove('active'));
+  document.querySelectorAll(`#page-${group} .tab-btn`).forEach(b => b.classList.remove('active'));
+  document.getElementById(`${group}-tab-${id}`).classList.add('active');
+  btn.classList.add('active');
+}
+
+function renderPage(id) {
+  const fns = { dashboard: renderDashboard, members: renderAdminMembers, kitty: renderAdminKitty, leadership: renderLeadership, meetings: renderMeetings, events: renderEvents, announcements: renderAnnouncements, gallery: renderGallery, settings: loadSettings };
+  if (fns[id]) fns[id]();
+}
+
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+/* ── DASHBOARD ────────────────────────────────────────────────── */
+function renderDashboard() {
+  const d = DB.get();
+  const members = d.members.filter(m => m.tier !== 'founder');
+  const paid = members.filter(m => m.kittyPaid);
+  const unpaid = members.filter(m => !m.kittyPaid);
+
+  document.getElementById('dashStats').innerHTML = `
+    <div class="stat-card"><div class="stat-num">${d.members.length}</div><div class="stat-label">Total members</div></div>
+    <div class="stat-card gold"><div class="stat-num">${d.settings.currency} ${d.kitty.balance.toLocaleString()}</div><div class="stat-label">Kitty balance</div></div>
+    <div class="stat-card"><div class="stat-num">${paid.length}</div><div class="stat-label">Paid this quarter</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#a32d2d">${unpaid.length}</div><div class="stat-label">Unpaid</div></div>
+    <div class="stat-card"><div class="stat-num">${d.meetings.length}</div><div class="stat-label">Meetings on record</div></div>
+    <div class="stat-card"><div class="stat-num">${d.gallery.length}</div><div class="stat-label">Gallery photos</div></div>
+  `;
+
+  const recentTx = [...d.kitty.transactions].reverse().slice(0, 5);
+  document.getElementById('dashRecentPay').innerHTML = recentTx.length
+    ? recentTx.map(tx => `<div class="member-row"><div class="member-info"><div class="member-name">${tx.memberName}</div><div class="member-role">${fmtDate(tx.date)}</div></div><div class="bold text-green">${d.settings.currency} ${tx.amount}</div></div>`).join('')
+    : '<p class="text-muted text-sm">No payments yet</p>';
+
+  document.getElementById('dashUnpaid').innerHTML = unpaid.length
+    ? unpaid.slice(0, 6).map(m => `<div class="member-row"><div class="av av-sm" style="background:${genBg(m.generation)};color:${genColor(m.generation)}">${Members.initials(m.name)}</div><div class="member-info"><div class="member-name">${m.name}</div><div class="member-role">${Members.tierLabel(m.tier)}</div></div><span class="badge badge-gold">${d.settings.currency} ${Members.tierRate(m.tier)}</span></div>`).join('')
+    : '<p class="text-muted text-sm">All members paid! 🎉</p>';
+}
+
+/* ── MEMBERS ─────────────────────────────────────────────────── */
+let adminMemberFilter = '';
+function renderAdminMembers() { buildAdminMembersTable(); }
+function adminFilterMembers(q) { adminMemberFilter = q; buildAdminMembersTable(); }
+
+function buildAdminMembersTable() {
+  const d = DB.get();
+  let list = d.members;
+  if (adminMemberFilter) {
+    const q = adminMemberFilter.toLowerCase();
+    list = list.filter(m => m.name.toLowerCase().includes(q) || (m.location || '').toLowerCase().includes(q));
+  }
+  const tbody = document.getElementById('adminMembersTable');
+  tbody.innerHTML = list.map(m => {
+    const parent = m.parentId ? d.members.find(p => p.id === m.parentId) : null;
+    const bg = genBg(m.generation); const fg = genColor(m.generation);
+    return `<tr>
+      <td><div class="flex gap-8" style="align-items:center"><div class="av av-sm" style="background:${bg};color:${fg}">${Members.initials(m.name)}</div><span class="bold">${m.name}</span>${m.status==='deceased'?'<span class="badge badge-gray" style="font-size:10px">✝</span>':''}</div></td>
+      <td><span class="badge ${['','badge-gold','badge-green','badge-blue','badge-gray'][Math.min(m.generation,4)]}">Gen ${m.generation}</span></td>
+      <td class="text-muted">${parent ? parent.name : '—'}</td>
+      <td class="text-sm">${Members.tierLabel(m.tier)}</td>
+      <td class="text-muted">${m.location || '—'}</td>
+      <td>${m.tier==='founder'?'<span class="text-muted">—</span>':m.kittyPaid?'<span class="badge badge-green">Paid</span>':'<span class="badge badge-gold">Due</span>'}</td>
+      <td><div class="flex gap-8"><button class="btn btn-outline btn-sm btn-icon" onclick="openEditMember('${m.id}')" title="Edit">✏</button><button class="btn btn-danger btn-sm btn-icon" onclick="deleteMember('${m.id}')" title="Delete">🗑</button></div></td>
+    </tr>`;
+  }).join('');
+}
+
+function openAddMember() {
+  document.getElementById('memberModalTitle').textContent = 'Add member';
+  document.getElementById('editMemberId').value = '';
+  ['mName','mLocation','mPhone'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('mGender').value = 'M';
+  document.getElementById('mGen').value = '3';
+  document.getElementById('mTier').value = 'g3';
+  document.getElementById('mStatus').value = 'active';
+  document.getElementById('mDob').value = '';
+  populateParentSelect(null);
+  document.getElementById('memberModal').style.display = 'flex';
+}
+
+function openEditMember(id) {
+  const m = Members.byId(id);
+  if (!m) return;
+  document.getElementById('memberModalTitle').textContent = 'Edit member';
+  document.getElementById('editMemberId').value = id;
+  document.getElementById('mName').value = m.name;
+  document.getElementById('mGender').value = m.gender || 'M';
+  document.getElementById('mGen').value = m.generation;
+  document.getElementById('mTier').value = m.tier;
+  document.getElementById('mStatus').value = m.status || 'active';
+  document.getElementById('mLocation').value = m.location || '';
+  document.getElementById('mPhone').value = m.phone || '';
+  document.getElementById('mDob').value = m.dob || '';
+  populateParentSelect(m.parentId);
+  document.getElementById('memberModal').style.display = 'flex';
+}
+
+function populateParentSelect(selectedId) {
+  const sel = document.getElementById('mParent');
+  sel.innerHTML = '<option value="">-- None (Founder) --</option>';
+  Members.all().forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.id; opt.textContent = `${m.name} (Gen ${m.generation})`;
+    if (m.id === selectedId) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function saveMember() {
+  const name = document.getElementById('mName').value.trim();
+  if (!name) { alert('Name is required'); return; }
+  const id = document.getElementById('editMemberId').value;
+  const member = {
+    name,
+    gender: document.getElementById('mGender').value,
+    parentId: document.getElementById('mParent').value || null,
+    generation: parseInt(document.getElementById('mGen').value),
+    tier: document.getElementById('mTier').value,
+    status: document.getElementById('mStatus').value,
+    location: document.getElementById('mLocation').value.trim(),
+    phone: document.getElementById('mPhone').value.trim(),
+    dob: document.getElementById('mDob').value,
+    kittyPaid: false,
+    joined: new Date().toISOString().slice(0,10),
+  };
+  if (id) {
+    Members.update(id, member);
+    toast('Member updated');
+  } else {
+    Members.add(member);
+    toast('Member added');
+  }
+  closeMemberModal();
+  buildAdminMembersTable();
+}
+
+function deleteMember(id) {
+  const m = Members.byId(id);
+  if (!m) return;
+  const children = Members.children(id);
+  const msg = children.length
+    ? `Delete "${m.name}" and their ${children.length} child(ren)? This cannot be undone.`
+    : `Delete "${m.name}"? This cannot be undone.`;
+  if (!confirm(msg)) return;
+  Members.remove(id);
+  toast('Member deleted');
+  buildAdminMembersTable();
+}
+
+function closeMemberModal() { document.getElementById('memberModal').style.display = 'none'; }
+
+/* ── KITTY ────────────────────────────────────────────────────── */
+function renderAdminKitty() {
+  const d = DB.get();
+  const members = d.members.filter(m => m.tier !== 'founder');
+  const paid = members.filter(m => m.kittyPaid).length;
+  document.getElementById('adminKittyStats').innerHTML = `
+    <div class="stat-card gold"><div class="stat-num">${d.settings.currency} ${d.kitty.balance.toLocaleString()}</div><div class="stat-label">Balance</div></div>
+    <div class="stat-card"><div class="stat-num">${paid}</div><div class="stat-label">Paid</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#a32d2d">${members.length - paid}</div><div class="stat-label">Unpaid</div></div>
+  `;
+
+  // Populate member select
+  const sel = document.getElementById('kMember');
+  sel.innerHTML = '<option value="">-- Select member --</option>';
+  members.forEach(m => { sel.innerHTML += `<option value="${m.id}" data-tier="${m.tier}">${m.name} (${Members.tierLabel(m.tier)})</option>`; });
+  sel.onchange = () => {
+    const opt = sel.options[sel.selectedIndex];
+    const tier = opt?.dataset?.tier || '';
+    const rates = { g2: 200, g3: 300, g4: 300, junior: 50 };
+    document.getElementById('kAmount').value = rates[tier] || '';
+  };
+
+  // Set defaults
+  document.getElementById('kDate').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('kQuarter').value = d.kitty.currentQuarter;
+  document.getElementById('statusQuarter').textContent = d.kitty.currentQuarter;
+
+  // Status table
+  const tbody = document.getElementById('kittyStatusTable');
+  tbody.innerHTML = members.map(m => `
+    <tr>
+      <td><span class="bold">${m.name}</span></td>
+      <td class="text-muted">${Members.tierLabel(m.tier)}</td>
+      <td>${d.settings.currency} ${Members.tierRate(m.tier)}</td>
+      <td>${m.kittyPaid ? '<span class="badge badge-green">Paid</span>' : '<span class="badge badge-gold">Due</span>'}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="togglePaid('${m.id}',${!m.kittyPaid})">${m.kittyPaid ? 'Mark due' : 'Mark paid'}</button></td>
+    </tr>`).join('');
+
+  // Tx table
+  const txBody = document.getElementById('adminTxTable');
+  txBody.innerHTML = [...d.kitty.transactions].reverse().map(tx => `
+    <tr>
+      <td class="bold">${tx.memberName}</td>
+      <td class="text-green bold">${d.settings.currency} ${tx.amount}</td>
+      <td>${fmtDate(tx.date)}</td>
+      <td>${tx.quarter}</td>
+      <td>${tx.method || '—'}</td>
+      <td class="text-muted">${tx.ref || '—'}</td>
+      <td><button class="btn btn-danger btn-sm btn-icon" onclick="deleteTx('${tx.id}')">🗑</button></td>
+    </tr>`).join('');
+}
+
+function recordPayment() {
+  const memberId = document.getElementById('kMember').value;
+  const amount = parseInt(document.getElementById('kAmount').value);
+  if (!memberId || !amount) { alert('Select a member and enter an amount'); return; }
+  const m = Members.byId(memberId);
+  Kitty.recordPayment({
+    memberId, memberName: m.name, amount,
+    date: document.getElementById('kDate').value,
+    quarter: document.getElementById('kQuarter').value,
+    method: document.getElementById('kMethod').value,
+    ref: document.getElementById('kRef').value.trim(),
+  });
+  toast(`Payment of Ksh ${amount} recorded for ${m.name}`);
+  renderAdminKitty();
+}
+
+function togglePaid(memberId, paid) {
+  Kitty.setPaid(memberId, '', paid);
+  renderAdminKitty();
+}
+
+function deleteTx(txId) {
+  if (!confirm('Delete this transaction?')) return;
+  DB.update(d => {
+    const tx = d.kitty.transactions.find(t => t.id === txId);
+    if (tx) d.kitty.balance -= tx.amount;
+    d.kitty.transactions = d.kitty.transactions.filter(t => t.id !== txId);
+  });
+  toast('Transaction deleted');
+  renderAdminKitty();
+}
+
+function adjustBalance() {
+  const type = document.getElementById('adjType').value;
+  const amount = parseInt(document.getElementById('adjAmount').value);
+  const note = document.getElementById('adjNote').value;
+  if (!amount) { alert('Enter an amount'); return; }
+  DB.update(d => {
+    const adj = type.startsWith('Credit') ? amount : -amount;
+    d.kitty.balance += adj;
+    d.kitty.transactions.push({ id: 'adj' + Date.now(), memberId: '', memberName: 'Adjustment: ' + note, amount: adj, date: new Date().toISOString().slice(0,10), quarter: d.kitty.currentQuarter, method: 'Manual', ref: '' });
+  });
+  toast('Balance adjusted');
+  renderAdminKitty();
+}
+
+/* ── LEADERSHIP ──────────────────────────────────────────────── */
+function renderLeadership() {
+  const d = DB.get();
+  document.getElementById('leadershipAdmin').innerHTML = `
+    <div class="card-title">Committee members</div>
+    ${d.leadership.map((l, i) => `
+      <div class="member-row">
+        <div class="av" style="background:#E1F5EE;color:#0F6E56">${l.name ? Members.initials(l.name) : '?'}</div>
+        <div class="member-info">
+          <input class="form-input" value="${l.role}" placeholder="Role" style="margin-bottom:4px" onchange="updateLeader(${i},'role',this.value)"/>
+          <div class="form-row" style="gap:8px">
+            <input class="form-input" value="${l.name}" placeholder="Name" onchange="updateLeader(${i},'name',this.value)"/>
+            <input class="form-input" value="${l.phone}" placeholder="Phone" onchange="updateLeader(${i},'phone',this.value)"/>
+          </div>
+        </div>
+        <button class="btn btn-danger btn-sm btn-icon" onclick="removeLeader(${i})" style="margin-left:8px">🗑</button>
+      </div>`).join('')}
+    <button class="btn btn-primary mt-8" onclick="saveLeadership()" style="margin-top:12px">Save leadership</button>
+  `;
+}
+
+function updateLeader(i, field, val) {
+  DB.update(d => { if (d.leadership[i]) d.leadership[i][field] = val; });
+}
+function removeLeader(i) {
+  DB.update(d => { d.leadership.splice(i, 1); });
+  renderLeadership();
+}
+function addLeaderRole() {
+  DB.update(d => { d.leadership.push({ id: uid(), role: 'New Role', name: '', phone: '' }); });
+  renderLeadership();
+}
+function saveLeadership() { toast('Leadership saved'); }
+
+/* ── MEETINGS ─────────────────────────────────────────────────── */
+function renderMeetings() {
+  const d = DB.get();
+  document.getElementById('adminMeetingsList').innerHTML = d.meetings.length
+    ? d.meetings.map(m => `
+        <div class="minutes-item">
+          <div class="flex-between">
+            <div>
+              <div class="minutes-title">${m.title}</div>
+              <div class="minutes-meta">${fmtDate(m.date)} · ${m.location} · ${m.attendance} attended</div>
+            </div>
+            <div class="flex gap-8">
+              <button class="btn btn-outline btn-sm" onclick="openEditMeeting('${m.id}')">Edit</button>
+              <button class="btn btn-danger btn-sm btn-icon" onclick="deleteMeeting('${m.id}')">🗑</button>
+            </div>
+          </div>
+        </div>`).join('')
+    : '<div class="empty-state"><div class="empty-state-text">No meetings yet</div></div>';
+}
+
+function openAddMeeting() {
+  document.getElementById('editMeetingId').value = '';
+  ['mtTitle','mtLocation','mtAgenda','mtNotes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('mtDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('mtAttendance').value = 0;
+  document.getElementById('mtStatus').value = 'upcoming';
+  document.getElementById('meetingModal').style.display = 'flex';
+}
+
+function openEditMeeting(id) {
+  const m = DB.get().meetings.find(x => x.id === id);
+  if (!m) return;
+  document.getElementById('editMeetingId').value = id;
+  document.getElementById('mtTitle').value = m.title;
+  document.getElementById('mtDate').value = m.date;
+  document.getElementById('mtLocation').value = m.location;
+  document.getElementById('mtAttendance').value = m.attendance;
+  document.getElementById('mtStatus').value = m.status;
+  document.getElementById('mtAgenda').value = m.agenda || '';
+  document.getElementById('mtNotes').value = m.minutes || '';
+  document.getElementById('meetingModal').style.display = 'flex';
+}
+
+function saveMeeting() {
+  const title = document.getElementById('mtTitle').value.trim();
+  if (!title) { alert('Title required'); return; }
+  const id = document.getElementById('editMeetingId').value;
+  const meeting = {
+    title, date: document.getElementById('mtDate').value,
+    location: document.getElementById('mtLocation').value.trim(),
+    attendance: parseInt(document.getElementById('mtAttendance').value) || 0,
+    status: document.getElementById('mtStatus').value,
+    agenda: document.getElementById('mtAgenda').value.trim(),
+    minutes: document.getElementById('mtNotes').value.trim(),
+    attachments: [],
+  };
+  DB.update(d => {
+    if (id) {
+      const i = d.meetings.findIndex(m => m.id === id);
+      if (i >= 0) Object.assign(d.meetings[i], meeting);
+    } else {
+      meeting.id = 'mt' + Date.now();
+      d.meetings.unshift(meeting);
+    }
+  });
+  toast('Meeting saved');
+  closeMeetingModal();
+  renderMeetings();
+}
+
+function deleteMeeting(id) {
+  if (!confirm('Delete this meeting record?')) return;
+  DB.update(d => { d.meetings = d.meetings.filter(m => m.id !== id); });
+  toast('Meeting deleted');
+  renderMeetings();
+}
+function closeMeetingModal() { document.getElementById('meetingModal').style.display = 'none'; }
+
+/* ── EVENTS ───────────────────────────────────────────────────── */
+function renderEvents() {
+  const d = DB.get();
+  document.getElementById('adminEventsList').innerHTML = d.events.length
+    ? d.events.map(e => `
+        <div class="event-card">
+          <div class="event-date-box">
+            <div class="event-day">${new Date(e.date).getDate()}</div>
+            <div class="event-month">${new Date(e.date).toLocaleDateString('en-KE',{month:'short'})}</div>
+          </div>
+          <div style="flex:1">
+            <div class="event-title">${e.title}</div>
+            <div class="event-loc">${e.location}</div>
+            <div style="margin-top:4px"><span class="badge ${e.status==='upcoming'?'badge-green':e.status==='planning'?'badge-gold':'badge-gray'}">${e.status}</span></div>
+          </div>
+          <div class="flex gap-8" style="align-items:center">
+            <button class="btn btn-outline btn-sm" onclick="openEditEvent('${e.id}')">Edit</button>
+            <button class="btn btn-danger btn-sm btn-icon" onclick="deleteEvent('${e.id}')">🗑</button>
+          </div>
+        </div>`).join('')
+    : '<div class="empty-state"><div class="empty-state-text">No events yet</div></div>';
+}
+
+function openAddEvent() {
+  document.getElementById('editEventId').value = '';
+  ['evTitle','evLocation','evNotes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('evDate').value = '';
+  document.getElementById('evStatus').value = 'upcoming';
+  document.getElementById('eventModal').style.display = 'flex';
+}
+function openEditEvent(id) {
+  const e = DB.get().events.find(x => x.id === id);
+  if (!e) return;
+  document.getElementById('editEventId').value = id;
+  document.getElementById('evTitle').value = e.title;
+  document.getElementById('evDate').value = e.date;
+  document.getElementById('evStatus').value = e.status;
+  document.getElementById('evLocation').value = e.location;
+  document.getElementById('evNotes').value = e.notes || '';
+  document.getElementById('eventModal').style.display = 'flex';
+}
+function saveEvent() {
+  const title = document.getElementById('evTitle').value.trim();
+  if (!title) { alert('Title required'); return; }
+  const id = document.getElementById('editEventId').value;
+  const ev = { title, date: document.getElementById('evDate').value, status: document.getElementById('evStatus').value, location: document.getElementById('evLocation').value, notes: document.getElementById('evNotes').value };
+  DB.update(d => {
+    if (id) { const i = d.events.findIndex(e => e.id === id); if (i >= 0) Object.assign(d.events[i], ev); }
+    else { ev.id = 'ev' + Date.now(); d.events.unshift(ev); }
+  });
+  toast('Event saved'); closeEventModal(); renderEvents();
+}
+function deleteEvent(id) {
+  if (!confirm('Delete event?')) return;
+  DB.update(d => { d.events = d.events.filter(e => e.id !== id); });
+  toast('Event deleted'); renderEvents();
+}
+function closeEventModal() { document.getElementById('eventModal').style.display = 'none'; }
+
+/* ── ANNOUNCEMENTS ───────────────────────────────────────────── */
+function renderAnnouncements() {
+  const d = DB.get();
+  document.getElementById('adminAnnounceList').innerHTML = d.announcements.length
+    ? d.announcements.map(a => `
+        <div class="announce-card ${a.pinned ? 'pinned' : ''}">
+          <div class="flex-between">
+            <div class="announce-title">${a.pinned ? '📌 ' : ''}${a.title}</div>
+            <div class="flex gap-8">
+              <button class="btn btn-danger btn-sm btn-icon" onclick="deleteAnnounce('${a.id}')">🗑</button>
+            </div>
+          </div>
+          <div class="announce-body">${a.body}</div>
+          <div class="announce-date">${fmtDate(a.date)}</div>
+        </div>`).join('')
+    : '<p class="text-muted text-sm">No announcements</p>';
+}
+
+function openAddAnnounce() {
+  ['anTitle','anBody'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('anDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('anPinned').checked = false;
+  document.getElementById('announceModal').style.display = 'flex';
+}
+function saveAnnounce() {
+  const title = document.getElementById('anTitle').value.trim();
+  if (!title) { alert('Title required'); return; }
+  DB.update(d => {
+    d.announcements.unshift({ id: 'an' + Date.now(), title, body: document.getElementById('anBody').value.trim(), date: document.getElementById('anDate').value, pinned: document.getElementById('anPinned').checked });
+  });
+  toast('Announcement posted'); closeAnnounceModal(); renderAnnouncements();
+}
+function deleteAnnounce(id) {
+  if (!confirm('Delete announcement?')) return;
+  DB.update(d => { d.announcements = d.announcements.filter(a => a.id !== id); });
+  toast('Deleted'); renderAnnouncements();
+}
+function closeAnnounceModal() { document.getElementById('announceModal').style.display = 'none'; }
+
+/* ── GALLERY ──────────────────────────────────────────────────── */
+let pendingPhotos = [];
+let pendingIdx = 0;
+
+function renderGallery() {
+  const photos = DB.get().gallery;
+  const grid = document.getElementById('adminGalleryGrid');
+  const empty = document.getElementById('adminGalleryEmpty');
+  if (!photos.length) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  grid.innerHTML = photos.map(p => `
+    <div class="gallery-item">
+      <img src="${p.dataUrl}" alt="${p.caption || ''}" loading="lazy"/>
+      ${p.caption ? `<div class="gallery-caption">${p.caption}</div>` : ''}
+      <button class="gallery-delete" onclick="deletePhoto('${p.id}')">✕</button>
+    </div>`).join('');
+}
+
+function handleGalleryFiles(files) {
+  if (!files.length) return;
+  pendingPhotos = Array.from(files);
+  pendingIdx = 0;
+  processNextPhoto();
+}
+function handleGalleryDrop(e) {
+  e.preventDefault();
+  document.getElementById('galleryDrop').classList.remove('drag-over');
+  handleGalleryFiles(e.dataTransfer.files);
+}
+function processNextPhoto() {
+  if (pendingIdx >= pendingPhotos.length) { renderGallery(); return; }
+  const file = pendingPhotos[pendingIdx];
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    document.getElementById('captionPreview').src = e.target.result;
+    document.getElementById('captionPreview').dataset.dataUrl = e.target.result;
+    document.getElementById('captionInput').value = '';
+    document.getElementById('captionModal').style.display = 'flex';
+  };
+  reader.readAsDataURL(file);
+}
+function confirmCaption() {
+  const dataUrl = document.getElementById('captionPreview').dataset.dataUrl;
+  const caption = document.getElementById('captionInput').value.trim();
+  DB.update(d => { d.gallery.push({ id: 'g' + Date.now() + pendingIdx, caption, dataUrl, date: new Date().toISOString().slice(0,10) }); });
+  document.getElementById('captionModal').style.display = 'none';
+  pendingIdx++;
+  processNextPhoto();
+}
+function skipCaption() {
+  const dataUrl = document.getElementById('captionPreview').dataset.dataUrl;
+  DB.update(d => { d.gallery.push({ id: 'g' + Date.now() + pendingIdx, caption: '', dataUrl, date: new Date().toISOString().slice(0,10) }); });
+  document.getElementById('captionModal').style.display = 'none';
+  pendingIdx++;
+  processNextPhoto();
+}
+function deletePhoto(id) {
+  if (!confirm('Delete this photo?')) return;
+  DB.update(d => { d.gallery = d.gallery.filter(p => p.id !== id); });
+  toast('Photo deleted'); renderGallery();
+}
+
+/* ── IMPORT / EXPORT ──────────────────────────────────────────── */
+function handleCsvDrop(e) {
+  e.preventDefault(); e.currentTarget.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) importCsv(file);
+}
+
+function importCsv(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const lines = e.target.result.split('\n').filter(l => l.trim());
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const rows = lines.slice(1).map(line => {
+      const vals = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = vals[i] || '');
+      return obj;
+    }).filter(r => r.name);
+
+    document.getElementById('csvPreview').innerHTML = `
+      <div class="admin-hint">Found ${rows.length} members. Review below then click Import.</div>
+      <div class="table-wrap" style="max-height:200px;overflow-y:auto">
+        <table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+        <tbody>${rows.map(r => `<tr>${headers.map(h => `<td>${r[h]||''}</td>`).join('')}</tr>`).join('')}</tbody></table>
+      </div>
+      <button class="btn btn-primary mt-8" onclick='doCsvImport(${JSON.stringify(rows)})'>Import ${rows.length} members</button>
+    `;
+  };
+  reader.readAsText(file);
+}
+
+function doCsvImport(rows) {
+  let added = 0;
+  rows.forEach(row => {
+    const allMembers = Members.all();
+    const parent = row.parentname ? allMembers.find(m => m.name.toLowerCase() === row.parentname.toLowerCase()) : null;
+    Members.add({
+      name: row.name, gender: row.gender || 'M',
+      parentId: parent ? parent.id : null,
+      generation: parseInt(row.generation) || 3,
+      tier: row.tier || 'g3',
+      status: row.status || 'active',
+      location: row.location || '',
+      phone: row.phone || '',
+      dob: row.dob || '',
+      kittyPaid: false,
+      joined: new Date().toISOString().slice(0,10),
+    });
+    added++;
+  });
+  toast(`Imported ${added} members`);
+  document.getElementById('csvPreview').innerHTML = `<p class="text-green bold">✓ ${added} members imported successfully</p>`;
+  renderAdminMembers();
+}
+
+function importPaste() {
+  const text = document.getElementById('pasteInput').value.trim();
+  if (!text) { alert('Paste some member data first'); return; }
+  const lines = text.split('\n').filter(l => l.trim());
+  let added = 0;
+  lines.forEach(line => {
+    const parts = line.split(',').map(p => p.trim());
+    if (!parts[0]) return;
+    const name = parts[0];
+    const parentName = parts[1] || '';
+    const generation = parseInt(parts[2]) || 3;
+    const location = parts[3] || '';
+    const allMembers = Members.all();
+    const parent = parentName ? allMembers.find(m => m.name.toLowerCase() === parentName.toLowerCase()) : null;
+    Members.add({
+      name, parentId: parent ? parent.id : null, generation,
+      gender: 'M', tier: generation <= 2 ? 'g2' : generation <= 3 ? 'g3' : 'g4',
+      status: 'active', location, phone: '', dob: '', kittyPaid: false,
+      joined: new Date().toISOString().slice(0,10),
+    });
+    added++;
+  });
+  toast(`Added ${added} members`);
+  document.getElementById('pastePreview').innerHTML = `<p class="text-green bold">✓ ${added} members added</p>`;
+  renderAdminMembers();
+}
+
+function exportCsv() {
+  const members = Members.all();
+  const d = DB.get();
+  const headers = ['name','parentName','generation','gender','dob','location','phone','tier','status','kittyPaid'];
+  const rows = members.map(m => {
+    const parent = m.parentId ? d.members.find(p => p.id === m.parentId) : null;
+    return [m.name, parent ? parent.name : '', m.generation, m.gender, m.dob, m.location, m.phone, m.tier, m.status, m.kittyPaid].map(v => `"${v}"`).join(',');
+  });
+  const csv = [headers.join(','), ...rows].join('\n');
+  downloadFile(csv, 'ngugi-family-members.csv', 'text/csv');
+}
+
+function exportJson() {
+  const data = DB.get();
+  downloadFile(JSON.stringify(data, null, 2), 'ngugi-family-data.json', 'application/json');
+}
+
+function downloadFile(content, filename, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function confirmReset() {
+  if (!confirm('RESET ALL DATA? This will delete everything and cannot be undone. Type "RESET" to confirm.')) return;
+  const c = prompt('Type RESET to confirm:');
+  if (c === 'RESET') { DB.reset(); toast('Data reset to defaults'); renderPage('dashboard'); }
+}
+
+/* ── SETTINGS ──────────────────────────────────────────────────── */
+function loadSettings() {
+  const s = DB.get().settings;
+  document.getElementById('setFamilyName').value = s.familyName || '';
+  document.getElementById('setSlogan').value = s.slogan || '';
+  document.getElementById('setYear').value = s.foundingYear || '';
+  document.getElementById('setCurrency').value = s.currency || 'Ksh';
+  document.getElementById('setMpesa').value = s.mpesaTill || '';
+}
+
+function saveSettings() {
+  DB.update(d => {
+    d.settings.familyName = document.getElementById('setFamilyName').value.trim();
+    d.settings.slogan = document.getElementById('setSlogan').value.trim();
+    d.settings.foundingYear = parseInt(document.getElementById('setYear').value) || 1950;
+    d.settings.currency = document.getElementById('setCurrency').value.trim() || 'Ksh';
+    d.settings.mpesaTill = document.getElementById('setMpesa').value.trim();
+  });
+  toast('Settings saved');
+}
+
+function changePin() {
+  const np = document.getElementById('newPin').value;
+  const cp = document.getElementById('confirmPin').value;
+  if (!np) { alert('Enter a new PIN'); return; }
+  if (np !== cp) { alert('PINs do not match'); return; }
+  if (np.length < 4) { alert('PIN must be at least 4 characters'); return; }
+  DB.update(d => { d.settings.adminPin = np; });
+  document.getElementById('newPin').value = '';
+  document.getElementById('confirmPin').value = '';
+  toast('PIN changed successfully');
+}
+</script>
+</body>
+</html>
